@@ -1,49 +1,777 @@
 <!doctype html>
-<html>
-	<head>
-		<meta charset="utf-8">
-		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<html lang="en">
 
-		<title>reveal.js</title>
+<head>
+	<meta charset="utf-8">
 
-		<link rel="stylesheet" href="css/reveal.css">
-		<link rel="stylesheet" href="css/theme/black.css">
+	<title>Lecture 28.11.2018 - Spark</title>
 
-		<!-- Theme used for syntax highlighting of code -->
-		<link rel="stylesheet" href="lib/css/zenburn.css">
+	<meta name="description" content="A framework for easily creating beautiful presentations using HTML">
+	<meta name="author" content="Hakim El Hattab">
 
-		<!-- Printing and PDF exports -->
-		<script>
-			var link = document.createElement( 'link' );
-			link.rel = 'stylesheet';
-			link.type = 'text/css';
-			link.href = window.location.search.match( /print-pdf/gi ) ? 'css/print/pdf.css' : 'css/print/paper.css';
-			document.getElementsByTagName( 'head' )[0].appendChild( link );
-		</script>
-	</head>
-	<body>
-		<div class="reveal">
-			<div class="slides">
-				<section>Slide 1</section>
-				<section>Slide 2</section>
-			</div>
+	<meta name="apple-mobile-web-app-capable" content="yes">
+	<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+	<link rel="stylesheet" href="css/reveal.css">
+	<link rel="stylesheet" href="css/theme/black.css" id="theme">
+
+	<!-- Theme used for syntax highlighting of code -->
+	<link rel="stylesheet" href="lib/css/zenburn.css">
+
+	<!-- Printing and PDF exports -->
+	<script>
+		var link = document.createElement( 'link' );
+		link.rel = 'stylesheet';
+		link.type = 'text/css';
+		link.href = window.location.search.match( /print-pdf/gi ) ? 'css/print/pdf.css' : 'css/print/paper.css';
+		document.getElementsByTagName( 'head' )[0].appendChild( link );
+	</script>
+
+		<!--[if lt IE 9]>
+		<script src="lib/js/html5shiv.js"></script>
+	<![endif]-->
+	<style>
+	.reveal pre code{
+		max-height: initial;
+	}
+	.reveal pre{
+		background: #3f3f3f;
+	}
+</style>
+</head>
+
+<body>
+
+	<div class="reveal">
+
+		<!-- Any section element inside of this container is displayed as a slide -->
+		<div class="slides">
+			<section>
+				<h1>Apache Spark</h1>
+				<h3>Roman Bartusiak</h3>
+			</section>
+
+			<section>
+				<section>
+					<h2>General</h2>
+					<ul>
+						<li>University of California</li>
+						<li>UC Berkeley AMPLab</li>
+						<li>Matei Zaharia PhD Thesis</li>
+						<li>Huge community</li>
+						<li>JVM</li>
+					</ul>
+				</section>
+			</section>
+			<section>
+				<section>
+					<h2>Spark architecture</h2>
+					<img src="img/spark-architecture.png" alt="Spark architecture">
+				</section>
+				<section>
+					<ul>
+						<li>one Driver - many Workers</li>
+						<li>Each application in separate JVM</li>
+						<li>Driver needs to be accesible from workers</li>
+					</ul>
+				</section>
+				<section>
+					<ul>
+						<li>Appication - our main()</li>
+						<li>Driver - executes our main(), schedules DAG</li>
+						<li>Executor - each worker spawns executors in order to run tasks of our application</li>
+					</ul>
+				</section>
+				<section>
+					Tune executors per worker
+					<ul>
+						<li>
+							to small executors - unnecessary overhead
+						</li>
+						<li>
+							to big executors - IO issues, failure recovery issues
+						</li>
+						<li>
+							keep balance 
+							<ul>
+								<li>
+									5 cores per executor?
+								</li>
+								<li>
+									leave core for IO (HDFS, Lustre, ...)
+								</li>
+								<li>
+									leave resources for application manager and other overheads
+								</li>
+							</ul>
+						</li>
+					</ul>
+				</section>
+				<section>
+					<h3>DAG</h3>
+					<ul>
+						<li>Directed Acyclic Graph</li>
+						<li>Represents computations</li>
+						<li>We are not doing computations in our code, we are creating DAGs and executing them</li>
+					</ul>
+				</section>
+				<section>
+					<img src="img/spark-dag.png" alt="">
+				</section>
+				<section>
+					<ul>
+						<li>
+							Application
+							<ol>
+								<li>
+									Job
+									<ol>
+										<li>
+											Stage eg. map
+											<ul>
+												<li>
+													Task
+												</li>
+												<li>
+													Task
+												</li>
+												<li>
+													...
+												</li>
+											</ul>
+										</li>
+										<li>
+											Stage eg. reduce
+										</li>
+										<li>
+											...
+										</li>
+									</ol>
+								</li>
+								<li>
+									Job
+								</li>
+								<li>
+									...
+								</li>
+							</ol>
+						</li>
+					</ul>
+				</section>
+
+
+			</section>
+
+			<section>
+				<h2>Spark components</h2>
+				<img src="img/spark-stack.png" alt="Spark stack">
+			</section>
+			<section>
+				<section>
+					<h2>Runtimes</h2>
+					<ul>
+						<li>Standalone</li>
+						<li>YARN</li>
+						<li>Mesos</li>
+						<li>Kubernetes</li>
+					</ul>
+				</section>
+				<section>
+					<h3>Standalone</h3>
+					<ul>
+						<li>Used in WCSS (utilizing pdsdsh)</li>
+						<li>
+							Simply: 
+							<ul>
+								<li>Put up master</li>
+								<li>Take master address</li>
+								<li>Put up nodes using master address</li>
+							</ul>
+						</li>
+					</ul>
+				</section>
+				<section>
+					<h3>YARN</h3>
+					<ul>
+						<li>Comes from Hadoop</li>
+						<li>Primarly only for Hadoop scheduling</li>
+					</ul>
+				</section>
+				<section>
+					<h3>Mesos</h3>
+					<ul>
+						<li>UC Berkeley</li>
+						<li>Used by Twitter, AirBnB...</li>
+						<li>Full abstraction over resources</li>
+					</ul>
+				</section>
+				<section>
+					<h3>Myriad</h3>
+					<ul>
+						<li>
+							Mesos + YARN on same infrastructure
+						</li>
+						<li> YARN running in Mesos</li>
+					</ul>
+				</section>
+				<section>
+					<h3>Kubernetes</h3>
+					<ul>
+						<li>Spark >= 2.3</li>
+						<li>Kubernetes >= 1.6</li>
+					</ul>
+				</section>
+			</section>
+			<section>
+				<section>
+					<h2>Spark CORE</h2>
+					<ul>
+						<li>
+							RDD - resilient distributed dataset
+							<ul>
+								<li>HDFS</li>
+								<li>Hadoop API</li>
+								<li>Directly from collections</li>
+							</ul>
+						</li>
+						<li>
+							Accumulators
+							<ul>
+								<li>
+									Shared variables betweend executors
+								</li>
+								<li>Only add - efficient</li>
+							</ul>
+						</li>
+					</ul>
+				</section>
+				<section>
+					<ul>
+						<li>
+							Broadcast variables
+							<ul>
+								<li>Efficient way to distributed read-only data between executors</li>
+								<li>
+									Spark optimizes communication in order to minimize overhead
+								</li>
+								<li>
+									Reduces overhead when data reused between stages
+								</li>
+							</ul>
+						</li>
+					</ul>
+				</section>
+				<section>
+					<h3>Data partitioning</h3>
+					<ul>
+						<li>
+							Each RDD is divided into partitions
+						</li>
+						<li>
+							Each partition is processed by single executor
+						</li>
+						<li>
+							You schould have at least equal number of partitions as number of CPUs in cluster (taking into account data set size)
+						</li>
+						<li>
+							To big partitions - memory issues
+						</li>
+						<li>
+							To many partitions in comparision to data set size - performance issues
+						</li>
+					</ul>
+				</section>
+				<section>
+					<ul>
+						<li>
+							2-3 * numCores of partitions (depends on data set size)
+						</li>
+						<li>
+							For big data sets - increas the number of partitions
+						</li>
+					</ul>
+				</section>
+				<section>
+					<h3>Shuffling</h3>
+					<ul>
+						<li>
+							repartitioning
+						</li>
+						<li>
+							expensive
+							<ul>
+								<li>
+									disk I/O
+								</li>
+								<li>
+									network I/O
+								</li>
+								<li>
+									serialization/deserialization
+								</li>
+							</ul>
+						</li>
+					</ul>
+				</section>
+				<section>
+					<h3>Data transformations</h3>
+					<ul>
+						<li>
+							Narrow
+							<ul>
+								<li>Does not require data shuffling</li>
+								<li>map, filter ...</li>
+								<li>Spark groups narrow transformations - pipelining</li>
+							</ul>
+						</li>
+						<li>
+							Wide
+							<ul>
+								<li>Requires data shuffling</li>
+								<li>groupByKey</li>
+							</ul>
+						</li>
+					</ul>
+				</section>
+				<section>
+					Remember about load balancing!
+					<ul>
+						<li>
+							Narrow operations will not cause shuffling
+						</li>
+						<li>
+							Without shuffling data can get skewed
+						</li>
+						<li>
+							Skewed data -> performance problems
+						</li>
+						<li>
+							repartition manually
+						</li>
+					</ul>
+				</section>
+				<section>
+					<h3 style="text-transform: none">reduceByKey, combineByKey, foldByKey vs <strike>groupByKey</strike></h3>
+					<ul>
+						<li>
+							reduceByKey, combineByKey, foldByKey
+							<ul>
+								<li>
+									decrease data size that needs to be:
+									<ul>
+										<li>
+											saved to a disk
+										</li>
+										<li>
+											sent over a network
+										</li>
+										<li>
+											serialized
+										</li>
+										<li>
+											deserialized
+										</li>
+									</ul>
+								</li>
+							</ul>
+						</li>
+					</ul>
+				</section>
+				<section>
+					<img style="float: left; width: 48%; margin-right:1%" src="img/reduce_by.png" alt="">
+					<img style="float: left; width: 48%;"  src="img/group_by.png" alt="">
+				</section>
+				<section>
+					Persistance
+					<ul>
+						<li>
+							operations are lazy
+						</li>
+						<li>
+							persist results of operations, in order to reuse it
+						</li>
+						<li>
+							<p>rdd.persist()</p>
+							<p>rdd.cache()</p>
+						</li>
+						<li>
+							can increase performance up to 10x
+						</li>
+					</ul>
+				</section>
+				<section>
+					<ul>
+						<li>
+							supports Kryo serialization
+						</li>
+						<li>
+							multiple storage levels
+						</li>
+						<li>
+							data can be compressed
+						</li>
+						<li>
+							experimental off-heap support
+						</li>
+					</ul>
+				</section>
+			</section>
+			<section>
+				<section>
+					<h2>Spark SQL</h2>
+					<blockquote>
+						Spark SQL is a new module in Apache Spark that integrates relational processing with Spark’s functional programming API.
+					</blockquote>
+					<blockquote>
+						Spark SQL lets Spark programmers leverage the benefits of relational processing (e.g., declarative queries and optimized storage), and lets SQL users call complex analytics libraries in Spark (e.g., machine learning).
+					</blockquote>
+				</section>
+				<section>
+					<ul>
+						<li>Utilize Spark CORE</li>
+						<li>Represents structured and semistructured data</li>
+						<li>
+							Process using: 
+							<ul>
+								<li>SQL/HiveQL</li>
+								<li>DataSet API</li>
+							</ul>
+						</li>
+					</ul>
+				</section>
+				<section>
+					<h3>SQL</h3>
+					<pre>
+						<code class="hljs scala"  data-trim data-noescape>
+							// Register the DataFrame as a SQL temporary view
+							df.createOrReplaceTempView("people")
+
+							val sqlDF = spark.sql("SELECT * FROM people")
+							sqlDF.show()
+							// +----+-------+
+							// | age|   name|
+							// +----+-------+
+							// |null|Michael|
+							// |  30|   Andy|
+							// |  19| Justin|
+							// +----+-------+
+						</code>
+					</pre>
+				</section>
+				<section>
+					<h3>DataSet API</h3>
+					<pre>
+						<code class="hljs scala"  data-trim data-noescape>
+							case class Person(name: String, age: Long)
+
+							// Encoders are created for case classes
+							val caseClassDS = Seq(Person("Andy", 32)).toDS()
+							caseClassDS.show()
+							// +----+---+
+							// |name|age|
+							// +----+---+
+							// |Andy| 32|
+							// +----+---+
+
+							// Encoders for most common types are automatically
+							//  provided by importing spark.implicits._
+							val primitiveDS = Seq(1, 2, 3).toDS()
+							primitiveDS.map(_ + 1).collect() // Returns: Array(2, 3, 4)
+						</code>
+					</pre>
+				</section>
+				<section>
+					<pre>
+						<code class="hljs scala"  data-trim data-noescape>
+							// DataFrames can be converted to a Dataset by
+							// providing a class. Mapping will be done by name
+							val path = "examples/src/main/resources/people.json"
+							val peopleDS = spark.read.json(path).as[Person]
+							peopleDS.show()
+							// +----+-------+
+							// | age|   name|
+							// +----+-------+
+							// |null|Michael|
+							// |  30|   Andy|
+							// |  19| Justin|
+							// +----+-------+
+						</code>
+					</pre>
+				</section>
+				<section>
+					<pre>
+						<code class="hljs scala"  data-trim data-noescape>
+							val teenagers = primitiveDS.where('age >= 10)
+							.where('age <= 19)
+							.select('name).as[String]
+							teenagers.show
+							//	+------+
+							//	| name |
+							//	+------+
+							//	|Justin|
+							//	+------+
+
+						</code>
+					</pre>
+				</section>
+				<section>
+					<pre>
+						<code class="hljs scala"  data-trim data-noescape>
+							val symbol = 'symbol
+							// symbol: Symbol = 'symbol'
+						</code>
+					</pre>
+				</section>
+			</section>
+			<section>
+				<section>
+					<h2>Spark Streaming</h2>
+					<ul>
+						<li>API mix</li>
+						<li> Structured Streaming - based on Spark SQL</li>
+						<li> Spark Streaming - old API </li>
+					</ul>
+				</section>
+				<section>
+					<ul>
+						<li>
+							micro-batching
+							<ul>
+								<li>exactly-once guarantees</li>
+								<li>100ms latencies</li>
+							</ul>
+						</li>
+					</ul>
+				</section>
+				<section data-background="http://i.giphy.com/90F8aUepslB84.gif">
+					<h3>CONTINOUS STREAMING</h3>
+				</section>
+				<section>
+					<ul>
+						<li>
+							extremaly limited continous streaming from 2.3.0 in Structured Streaming
+							<ul>
+								<li>Experimental</li>
+								<li>Lack of operations</li>
+								<li>at-least-once guarantees</li>
+								<li>1ms latencies</li>
+							</ul>
+						</li>
+					</ul>
+				</section>
+			</section>
+			<section>
+				<section>
+					<h2>Spark <span style="text-transform: none">MLlib</span></h2>
+					<ul>
+						<li>API mix</li>
+						<li>large scale distributed ML</li>
+						<li>
+							Many features:
+							<ul>
+								<li>data loading</li>
+								<li>data processing</li>
+								<li>ml methods</li>
+								<li>other tools</li>
+							</ul>
+						</li>
+					</ul>
+				</section>
+				<section>
+					<ul>
+						<li>
+							New dataframe API
+							<ul>
+								<li>pipelines</li>
+								<li>based on DataFrames - more friendly API</li>
+								<li>uniform API</li>
+							</ul>
+						</li>
+					</ul>
+				</section>
+				<section>
+					<ul>
+						<li> 
+							classification
+							<ul>
+								<li>binary</li>
+								<li>multi-class</li>
+								<li>multi-label</li>
+							</ul>
+						</li>
+						<li>regression</li>
+						<li>clustering</li>
+						<li>colaborative filtering</li>
+						<li>frequent pattern mining</li>
+					</ul>
+				</section>
+				<section>
+					<ul>
+						<li>hyper parameters search</li>
+						<li>cross validation</li>
+						<li>train test split</li>
+					</ul>
+				</section>
+			</section>
+			<section>
+				<section>
+					<h2 style="text-transform: none">GraphX</h2>
+					<ul>
+						<li>
+							Graph representation using Spark
+						</li>
+						<li>
+							a litle of graph alghoritms
+						</li>
+					</ul>
+				</section>
+				<section>
+					<img src="img/edge_cut_vs_vertex_cut.png" alt="Edge cut vs Vertex cut">
+				</section>
+				<section>
+					<ul>
+						<li>
+							PageRank
+						</li>
+						<li>
+							Pregel
+						</li>
+						<li>
+							Connected components
+						</li>
+						<li>
+							Triangle counting
+						</li>
+					</ul>
+				</section>
+			</section>
+			<section>
+				<section>
+					<h2>Others</h2>
+					<ul>
+						<li>GraphFrames</li>
+						<li>Zeppelin</li>
+						<li>Spark notebook</li>
+					</ul>
+				</section>
+				<section>
+					<h3 style="text-transform: none">GraphFrames</h3>
+					<ul>
+						<li>
+							Represent graphs using DataFrames 
+						</li>
+						<li>
+							Might be faster than GraphX
+						</li>
+						<li>
+							Smaller API
+						</li>
+						<li>
+							In some places uses GraphX under the hood
+						</li>
+					</ul>
+				</section>
+				<section>
+					<h3>Zeppelin</h3>
+				</section>
+				<section>
+					<h3>Spark notebooks</h3>
+				</section>
+			</section>
+			<section>
+				<img style="height:69vh" src="img/meme_1.png" alt="">
+			</section>
+
+			<section>
+				<section>
+					<h2>Projects WWWW</h2>
+					<ul>
+						<li>
+							Domain
+							<ul>
+								<li>https://freenom.com/</li>
+								<li>Free monains: tk, ml ga, cf, gq</li>
+							</ul>
+						</li>
+						<li>
+							Hosting
+							<ul>
+								<li>
+									Github gh-pages
+								</li>
+								<li>
+									Jekyll (official or custom themes)
+								</li>
+								<li>
+									Static sites
+								</li>
+								<li>
+									Look at lsdp.ml page repository (gh-pages branch)
+								</li>
+								<li>
+									Use https
+								</li>
+								<li>
+									Custom domains using redirection or CNAME file in repository
+								</li>
+							</ul>
+						</li>
+					</ul>
+				</section>
+			</section>
 		</div>
 
-		<script src="lib/js/head.min.js"></script>
-		<script src="js/reveal.js"></script>
+	</div>
 
-		<script>
-			// More info about config & dependencies:
-			// - https://github.com/hakimel/reveal.js#configuration
-			// - https://github.com/hakimel/reveal.js#dependencies
+	<script src="lib/js/head.min.js"></script>
+	<script src="js/reveal.js"></script>
+
+	<script>
+
+			// More info https://github.com/hakimel/reveal.js#configuration
 			Reveal.initialize({
+				slideNumber: 'c/t',
+				controls: true,
+				progress: true,
+				history: true,
+				center: true,
+
+				transition: 'slide', // none/fade/slide/convex/concave/zoom
+
+				// More info https://github.com/hakimel/reveal.js#dependencies
 				dependencies: [
-					{ src: 'plugin/markdown/marked.js' },
-					{ src: 'plugin/markdown/markdown.js' },
-					{ src: 'plugin/notes/notes.js', async: true },
-					{ src: 'plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } }
-				]
-			});
-		</script>
-	</body>
+				{ src: 'lib/js/classList.js', condition: function() { return !document.body.classList; } },
+				{ src: 'plugin/markdown/marked.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+				{ src: 'plugin/markdown/markdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+				{ src: 'plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } },
+				{ src: 'plugin/search/search.js', async: true },
+				{ src: 'plugin/zoom-js/zoom.js', async: true },
+				{ src: 'plugin/notes/notes.js', async: true },
+				{ src: 'node_modules/reveal.js-tableofcontents/tableofcontents.js' }
+				],
+				tableofcontents: {
+        // Specifies the slide title of the table of contents slide
+        title: "Agenda",
+
+        // Specifies the position of the table of contents slide in the presentation
+        position: 2,
+
+        // Specifies which slide tag elements will be used
+        // for generating the table of contents.
+        titleTagSelector: "h2",
+
+        // Specifies if the first slide, mostly the title slide of the presentation, should be ignored.
+        ignoreFirstSlide: true,
+
+        // Specifies if every single element of the table of contents
+        // will be stepped through before moving on to the next slide.
+        fadeInElements: false
+    }
+});
+
+</script>
+
+</body>
 </html>
